@@ -1,0 +1,81 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+  <title>jMV Certificate Issuer</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; }
+    .container { max-width: 600px; margin: auto; }
+    .field { margin-bottom: 15px; }
+    label { display: block; margin-bottom: 5px; font-weight: bold; }
+    input, button { width: 100%; padding: 10px; font-size: 16px; }
+    canvas { margin-top: 20px; display: block; }
+    #downloadLink { display: none; margin-top: 10px; text-align: center; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>Issue New Certificate</h2>
+    <form id="certificateForm">
+      <div class="field">
+        <label for="contractor">Contractor Name</label>
+        <input type="text" id="contractor" required />
+      </div>
+      <div class="field">
+        <label for="issuedBy">Issued By</label>
+        <input type="text" id="issuedBy" value="jMV LPS Limited" required />
+      </div>
+      <div class="field">
+        <label for="status">Status</label>
+        <input type="text" id="status" value="Valid" required />
+      </div>
+      <button type="submit">Generate Certificate</button>
+    </form>
+
+    <canvas id="qrCode"></canvas>
+    <a id="downloadLink" href="#" download="qr-code.png">Download QR Code</a>
+  </div>
+
+  <script>
+    document.getElementById('certificateForm').addEventListener('submit', async function(e) {
+      e.preventDefault();
+
+      const contractor = document.getElementById('contractor').value.trim();
+      const issuedBy = document.getElementById('issuedBy').value.trim();
+      const status = document.getElementById('status').value.trim();
+
+      const now = new Date();
+      const timestamp = now.toISOString();
+      const certId = `JMV-${now.getFullYear()}-${Math.floor(100000 + Math.random() * 900000)}`;
+
+      const sheetUrl = 'https://script.google.com/macros/s/AKfycbxl6-cd_yOAKaar_VWrgSgbIDmxvB1kyLu6xjSz6jrXwnW3NSCWKHngpczeFGGApgkq/exec';
+
+      try {
+        const response = await fetch(`${sheetUrl}?mode=add&certId=${encodeURIComponent(certId)}&contractor=${encodeURIComponent(contractor)}&issuedBy=${encodeURIComponent(issuedBy)}&status=${encodeURIComponent(status)}&date=${encodeURIComponent(timestamp)}`);
+        const result = await response.json();
+
+        if (result.success) {
+          const qrUrl = `https://your-verification-page.com?id=${certId}`;
+          const qr = new QRious({
+            element: document.getElementById('qrCode'),
+            value: qrUrl,
+            size: 250
+          });
+
+          const downloadLink = document.getElementById('downloadLink');
+          downloadLink.href = document.getElementById('qrCode').toDataURL();
+          downloadLink.style.display = 'block';
+
+          alert(`Certificate issued successfully!\nCertificate ID: ${certId}`);
+        } else {
+          alert('Error: ' + (result.error || 'Failed to save certificate.'));
+        }
+      } catch (err) {
+        console.error(err);
+        alert('Error while submitting the form.');
+      }
+    });
+  </script>
+</body>
+</html>
